@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Embedded Video with Bookmarks</title>
+<style>
+    #bookmarkList {
+        margin-top: 10px;
+    }
+</style>
+</head>
+<body>
+
+<!-- YouTube Video Link Input -->
+<div>
+    <label for="youtubeLink">YouTube Video Link:</label>
+    <input type="text" id="youtubeLink">
+    <button onclick="embedVideo()">Embed Video</button>
+</div>
+
+<!-- Embedded YouTube Video -->
+<div id="videoContainer"></div>
+
+<!-- Bookmark Input -->
+<div>
+    <label for="bookmarkName">Bookmark Name:</label>
+    <input type="text" id="bookmarkName">
+    <label for="bookmarkTime">Bookmark Time (in seconds):</label>
+    <input type="number" id="bookmarkTime">
+    <button onclick="addBookmark()">Add Bookmark</button>
+</div>
+
+<!-- Bookmark List -->
+<div>
+    <label for="bookmarkList">Bookmarks:</label>
+    <select id="bookmarkList"></select>
+    <button onclick="runAtSelectedBookmark()">Run at Selected Bookmark</button>
+</div>
+
+<!-- Trim Video -->
+<div>
+    <label for="startTrimBookmark">Start Trim Bookmark:</label>
+    <select id="startTrimBookmark"></select>
+    <label for="endTrimBookmark">End Trim Bookmark:</label>
+    <select id="endTrimBookmark"></select>
+    <button onclick="trimVideo()">Trim Video</button>
+</div>
+
+<!-- Download Link -->
+<div id="downloadLink"></div>
+
+<script>
+    // Function to embed YouTube video
+    function embedVideo() {
+        var youtubeLink = document.getElementById('youtubeLink').value;
+        var videoId = extractVideoId(youtubeLink);
+        
+        if (videoId) {
+            var embedUrl = 'https://www.youtube.com/embed/' + videoId + '?enablejsapi=1';
+            document.getElementById('videoContainer').innerHTML = '<iframe id="videoPlayer" width="560" height="315" src="' + embedUrl + '" frameborder="0" allowfullscreen></iframe>';
+        } else {
+            alert('Invalid YouTube video link!');
+        }
+    }
+
+    // Function to extract YouTube video ID from the link
+    function extractVideoId(link) {
+        var regex = /[?&]v=([^?&]+)/;
+        var match = link.match(regex);
+        return match && match[1];
+    }
+
+    // Function to add a bookmark
+    function addBookmark() {
+        var video = document.getElementById('videoPlayer');
+        var bookmarkName = document.getElementById('bookmarkName').value;
+        var bookmarkTime = document.getElementById('bookmarkTime').value;
+        
+        // Create an option element for the bookmark
+        var option = document.createElement('option');
+        option.value = bookmarkTime;
+        option.text = bookmarkName + ' - ' + formatTime(bookmarkTime);
+        
+        // Add the bookmark to the dropdown list
+        document.getElementById('bookmarkList').appendChild(option);
+        
+        // Add bookmark to the trim dropdowns
+        var optionStart = option.cloneNode(true);
+        var optionEnd = option.cloneNode(true);
+        document.getElementById('startTrimBookmark').appendChild(optionStart);
+        document.getElementById('endTrimBookmark').appendChild(optionEnd);
+    }
+    
+    // Function to run the video from the selected bookmark
+    function runAtSelectedBookmark() {
+        var video = document.getElementById('videoPlayer');
+        var bookmarkTime = document.getElementById('bookmarkList').value;
+        
+        // Pause the video
+        video.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+        
+        // Set the current time of the video to the selected bookmark time
+        video.contentWindow.postMessage('{"event":"command","func":"seekTo","args":[' + bookmarkTime + ',true]}', '*');
+        
+        // Play the video
+        video.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+    }
+    
+    // Function to trim the video clip
+    function trimVideo() {
+        var video = document.getElementById('videoPlayer');
+        var startTrimTime = document.getElementById('startTrimBookmark').value;
+        var endTrimTime = document.getElementById('endTrimBookmark').value;
+        
+        // Generate download link
+        var downloadLink = document.createElement('a');
+        downloadLink.href = 'https://www.youtube.com/embed/' + extractVideoId(document.getElementById('youtubeLink').value) + '?start=' + startTrimTime + '&end=' + endTrimTime;
+        downloadLink.innerText = 'Download Trimmed Video';
+        downloadLink.download = 'trimmed_video.mp4';
+        
+        // Display download link
+        document.getElementById('downloadLink').innerHTML = '';
+        document.getElementById('downloadLink').appendChild(downloadLink);
+    }
+    
+    // Function to format time in seconds to HH:MM:SS format
+    function formatTime(seconds) {
+        var hours = Math.floor(seconds / 3600);
+        var minutes = Math.floor((seconds % 3600) / 60);
+        var seconds = Math.floor(seconds % 60);
+        
+        return (hours < 10 ? '0' : '') + hours + ':' +
+               (minutes < 10 ? '0' : '') + minutes + ':' +
+               (seconds < 10 ? '0' : '') + seconds;
+    }
+</script>
+
+</body>
+</html>
